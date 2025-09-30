@@ -229,7 +229,6 @@ class SimpleOps(TensorOps):
 
 # Implementations.
 
-
 def tensor_map(fn: Callable[[float], float]) -> Any:
     """
     Low-level implementation of tensor map between
@@ -259,7 +258,6 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
     Returns:
         None : Fills in `out`
     """
-
     def _map(
         out: Storage,
         out_shape: Shape,
@@ -268,8 +266,14 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        size = int(np.prod(out_shape))
+        out_index = np.zeros_like(out_shape, dtype=np.int32)
+        in_index = np.zeros_like(in_shape, dtype=np.int32)
+        for i in range(size):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            out[i] = fn(in_storage[index_to_position(in_index, in_strides)])
+
 
     return _map
 
@@ -306,7 +310,6 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
     Returns:
         None : Fills in `out`
     """
-
     def _zip(
         out: Storage,
         out_shape: Shape,
@@ -318,33 +321,22 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        size = int(np.prod(out_shape))
+        out_index = np.zeros_like(out_shape, dtype=np.int32)
+        a_index = np.zeros_like(a_shape, dtype=np.int32)
+        b_index = np.zeros_like(b_shape, dtype=np.int32)
+        for i in range(size):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_val = a_storage[index_to_position(a_index, a_strides)]
+            b_val = b_storage[index_to_position(b_index, b_strides)]
+            out[i] = fn(a_val, b_val)
 
     return _zip
 
 
 def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
-    """
-    Low-level implementation of tensor reduce.
-
-    * `out_shape` will be the same as `a_shape`
-       except with `reduce_dim` turned to size `1`
-
-    Args:
-        fn: reduction function mapping two floats to float
-        out (array): storage for `out` tensor
-        out_shape (array): shape for `out` tensor
-        out_strides (array): strides for `out` tensor
-        a_storage (array): storage for `a` tensor
-        a_shape (array): shape for `a` tensor
-        a_strides (array): strides for `a` tensor
-        reduce_dim (int): dimension to reduce out
-
-    Returns:
-        None : Fills in `out`
-    """
-
     def _reduce(
         out: Storage,
         out_shape: Shape,
@@ -354,10 +346,20 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        size = int(np.prod(a_shape))
+        a_index = np.zeros_like(a_shape, dtype=np.int32)
+        out_index = np.zeros_like(out_shape, dtype=np.int32)
+        for i in range(size):
+            to_index(i, a_shape, a_index)
+            # Copy index except reduce_dim
+            for j, v in enumerate(a_index):
+                if j != reduce_dim:
+                    out_index[j] = v
+            # Compute output position
+            pos_out = index_to_position(out_index, out_strides)
+            pos_a = index_to_position(a_index, a_strides)
+            out[pos_out] = fn(out[pos_out], a_storage[pos_a])
 
     return _reduce
-
 
 SimpleBackend = TensorBackend(SimpleOps)

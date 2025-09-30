@@ -108,6 +108,9 @@ class Tensor:
              Converted to numpy array
         """
         return self.contiguous()._tensor._storage.reshape(self.shape)
+    
+    def __hash__(self):
+        return self.unique_id
 
     # Properties
     @property

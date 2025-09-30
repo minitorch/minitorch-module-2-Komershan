@@ -22,7 +22,13 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
     Returns:
         An approximation of $f'_i(x_0, \ldots, x_{n-1})$
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    vals_plus = list(vals)
+    vals_minus = list(vals)
+
+    vals_plus[arg] += epsilon
+    vals_minus[arg] -= epsilon
+
+    return (f(*vals_plus) - f(*vals_minus)) / (2 * epsilon)
 
 
 variable_count = 1
@@ -60,21 +66,50 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    visited = set()
+    order = []
+
+    def dfs(v: Variable) -> None:
+        if v.unique_id in visited or v.is_constant():
+            return
+        visited.add(v.unique_id)
+        for parent in v.parents:
+            dfs(parent)
+        order.append(v)
+
+    dfs(variable)
+    return order[::-1]
+
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
     """
     Runs backpropagation on the computation graph in order to
-    compute derivatives for the leave nodes.
+    compute derivatives for the leaf nodes.
 
     Args:
         variable: The right-most variable
-        deriv  : Its derivative that we want to propagate backward to the leaves.
+        deriv: Initial derivative (typically 1.0)
 
-    No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
+    Returns:
+        None. Updates derivatives in leaf nodes in-place.
     """
-    raise NotImplementedError("Need to include this file from past assignment.")
+    # Get nodes in topological order
+    ordered = topological_sort(variable)
+
+    # Map each variable to its derivative value
+    derivatives: dict[Variable, Any] = {variable: deriv}
+
+    for v in ordered:
+        d_out = derivatives[v]
+        if v.is_leaf():
+            v.accumulate_derivative(d_out)
+        else:
+            for parent, d_parent in v.chain_rule(d_out):
+                if parent in derivatives:
+                    derivatives[parent] += d_parent
+                else:
+                    derivatives[parent] = d_parent
 
 
 @dataclass
